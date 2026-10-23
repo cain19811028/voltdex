@@ -76,9 +76,35 @@ test("CLI ambiguous query", async (t) => {
   });
 });
 
+test("CLI version and help", async (t) => {
+  await t.test("reports package version with -v and --version", () => {
+    const resShort = cli("-v");
+    assert.equal(resShort.status, 0);
+    assert.match(resShort.stdout, /^voltdex v\d+\.\d+\.\d+/);
+
+    const resLong = cli("--version");
+    assert.equal(resLong.status, 0);
+    assert.match(resLong.stdout, /^voltdex v\d+\.\d+\.\d+/);
+  });
+
+  await t.test("prints disclaimer in help message", () => {
+    const res = cli("--help");
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /Disclaimer:/);
+    assert.match(res.stdout, /Nintendo/);
+  });
+});
+
 test("CLI exit status", async (t) => {
   await t.test("exits non-zero when the requested download fails", () => {
     const res = cli("25", "--out", "pikachu.txt");
+
+    assert.equal(res.status, 1);
+    assert.match(res.stderr, /Disallowed file extension/);
+  });
+
+  await t.test("rejects disallowed SVG image downloads", () => {
+    const res = cli("25", "--out", "pikachu.svg");
 
     assert.equal(res.status, 1);
     assert.match(res.stderr, /Disallowed file extension/);

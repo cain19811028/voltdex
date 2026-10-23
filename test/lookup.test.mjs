@@ -79,6 +79,7 @@ test("Multilingual Lookup Engine (findPokemon)", async (t) => {
     assert.equal(findPokemon("not-a-pokemon"), null);
     assert.equal(findPokemon(""), null);
     assert.equal(findPokemon(null), null);
+    assert.equal(findPokemon("a".repeat(101)), null);
   });
 });
 
@@ -238,6 +239,10 @@ test("Security Boundary Checks (downloadSprite)", async (t) => {
   await t.test("blocks disallowed non-image extensions", async () => {
     await assert.rejects(
       async () => downloadSprite(safeUrl, "test.sh"),
+      /Disallowed file extension/
+    );
+    await assert.rejects(
+      async () => downloadSprite(safeUrl, "test.svg"),
       /Disallowed file extension/
     );
   });

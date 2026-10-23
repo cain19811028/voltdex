@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 cain19811028
+import fs from "node:fs";
 import { parseArgs } from "node:util";
 import { searchPokemon, spriteUrlFor, downloadSprite } from "./src/lookup.mjs";
 import { startMcpServer } from "./src/mcp-server.mjs";
 import { TYPE_NAMES_ZH } from "./src/type-chart.mjs";
+
+const PKG = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 
 const CLI_OPTIONS = {
   mcp: { type: "boolean" },
@@ -13,6 +16,7 @@ const CLI_OPTIONS = {
   brief: { type: "boolean" },
   json: { type: "boolean" },
   help: { type: "boolean", short: "h" },
+  version: { type: "boolean", short: "v" },
   sprite: { type: "string" },
   out: { type: "string" },
   lang: { type: "string" },
@@ -42,6 +46,7 @@ Options:
   --out <path>        Download sprite image to specified file path (inside the current directory)
   --force             Overwrite the --out file if it already exists
   --mcp               Run as Model Context Protocol (MCP) stdio server
+  --version, -v       Show version number
   --help, -h          Show this help message
 
 Examples:
@@ -49,6 +54,11 @@ Examples:
   node index.mjs charizard --brief
   node index.mjs 25 --sprite official --shiny --out pikachu_shiny.png
   node index.mjs リザードン --sprite showdown --out charizard.gif
+
+Disclaimer:
+  voltdex is an unofficial fan project and is not affiliated with,
+  sponsored by, or endorsed by Nintendo, Creatures Inc., or GAME FREAK Inc.
+  Pokémon and Pokémon character names are trademarks of Nintendo.
 `);
 }
 
@@ -61,13 +71,19 @@ async function main() {
     process.exit(1);
   }
 
-  // 1. MCP Server Mode
+  // 1. Version
+  if (flags.version) {
+    console.log(`voltdex v${PKG.version}`);
+    process.exit(0);
+  }
+
+  // 2. MCP Server Mode
   if (flags.mcp) {
     startMcpServer();
     return;
   }
 
-  // 2. Help
+  // 3. Help
   if (flags.help || (positionals.length === 0 && !flags.mcp)) {
     printHelp();
     process.exit(flags.help ? 0 : 1);

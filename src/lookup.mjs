@@ -70,7 +70,7 @@ export function searchPokemon(rawQuery) {
   const none = { match: null, candidates: [], total: 0 };
   if (rawQuery === undefined || rawQuery === null) return none;
   const qStr = String(rawQuery).trim();
-  if (!qStr) return none;
+  if (!qStr || qStr.length > 100) return none;
 
   // 1. National Dex ID (#025, 25) names a species, so it returns the default form.
   const idMatch = /^#?(\d+)$/.exec(qStr);
@@ -161,7 +161,7 @@ export function getSpriteUrl(id, spriteSet = "official", shiny = false) {
   }
 }
 
-const ALLOWED_IMAGE_EXTENSIONS = new Set([".png", ".gif", ".jpg", ".jpeg", ".webp", ".svg"]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set([".png", ".gif", ".jpg", ".jpeg", ".webp"]);
 const ALLOWED_ORIGIN_PREFIX = "https://raw.githubusercontent.com/PokeAPI/";
 // The largest PokeAPI sprites are a few hundred KB; anything near this is not a sprite.
 const MAX_SPRITE_BYTES = 10 * 1024 * 1024;

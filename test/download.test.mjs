@@ -46,7 +46,16 @@ test("Sprite download boundary (downloadSprite)", async (t) => {
 
   await t.test("rejects a symlinked directory that leads outside the root", async (t) => {
     const { root, outside } = sandbox(t);
-    fs.symlinkSync(outside, path.join(root, "link"), "dir");
+    const linkType = process.platform === "win32" ? "junction" : "dir";
+    try {
+      fs.symlinkSync(outside, path.join(root, "link"), linkType);
+    } catch (err) {
+      if (err.code === "EPERM") {
+        t.skip("Creating directory symlinks requires developer mode or admin privileges on Windows");
+        return;
+      }
+      throw err;
+    }
 
     await assert.rejects(downloadSprite(SPRITE_URL, "link/escaped.png", { root }), /symlink/);
     await assert.rejects(downloadSprite(SPRITE_URL, "link/new/escaped.png", { root }), /symlink/);
@@ -69,7 +78,15 @@ test("Sprite download boundary (downloadSprite)", async (t) => {
     const { root, outside } = sandbox(t);
     const victim = path.join(outside, "victim.png");
     fs.writeFileSync(victim, "victim");
-    fs.symlinkSync(victim, path.join(root, "target.png"));
+    try {
+      fs.symlinkSync(victim, path.join(root, "target.png"));
+    } catch (err) {
+      if (err.code === "EPERM") {
+        t.skip("Creating file symlinks requires developer mode or admin privileges on Windows");
+        return;
+      }
+      throw err;
+    }
 
     await assert.rejects(downloadSprite(SPRITE_URL, "target.png", { root, overwrite: true }), /symlink/);
     assert.equal(fs.readFileSync(victim, "utf8"), "victim");
