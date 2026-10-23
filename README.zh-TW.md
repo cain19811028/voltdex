@@ -104,8 +104,11 @@ cp -r voltdex ~/.claude/skills/voltdex
 # 2. 全域安裝給 Cursor：
 cp -r voltdex ~/.cursor/skills/voltdex
 
-# 3. 或整合至你的特定專案 / AI 工作區的 skills 目錄：
-cp -r voltdex ./skills/voltdex
+# 3. 安裝給 Google Antigravity / Gemini CLI：
+cp -r voltdex ~/.gemini/antigravity-ide/skills/voltdex
+
+# 4. 或整合至你的特定專案 / AI 工作區的 skills 目錄：
+cp -r voltdex ./.agents/skills/voltdex
 ```
 AI Agent 將根據目錄中的 [`SKILL.md`](SKILL.md) 自主調用工具。
 

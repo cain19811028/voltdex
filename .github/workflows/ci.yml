@@ -11,11 +11,15 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         # Release lines still supported upstream: 22 and 24 are LTS, 26 is current.
         node-version: [22.x, 24.x, 26.x]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

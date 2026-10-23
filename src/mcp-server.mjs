@@ -260,6 +260,10 @@ export function startMcpServer() {
         send(rpcError(null, -32600, "Invalid Request"));
         return;
       }
+      if (msg.length > 50) {
+        send(rpcError(null, -32600, "Batch size exceeds limit of 50"));
+        return;
+      }
       const responses = (await Promise.all(msg.map(handleMessage))).filter(Boolean);
       if (responses.length > 0) send(responses);
       return;

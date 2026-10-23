@@ -37,15 +37,48 @@ copy_to() {
     rm -rf "$dst"
   fi
   mkdir -p "$dst"
-  # The glob skips dotfiles, so .git and other local state never get copied.
-  for item in "$SRC"/*; do
-    cp -R "$item" "$dst/"
+  local payload=(
+    "index.mjs"
+    "package.json"
+    "SKILL.md"
+    "LICENSE"
+    "NOTICE.md"
+    "THIRD_PARTY_NOTICES.md"
+    "README.zh-TW.md"
+    "src"
+    "data"
+  )
+  for item in "${payload[@]}"; do
+    if [[ -e "$SRC/$item" ]]; then
+      cp -R "$SRC/$item" "$dst/"
+    fi
   done
   echo "✔ Installed skill to: $dst"
 }
 
-copy_to "$HOME/.claude/skills/$SKILL_NAME"
-copy_to "$HOME/.cursor/skills/$SKILL_NAME"
+TARGET_DIR=""
+TARGET_HOME="${HOME}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
+    *)
+      TARGET_HOME="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -n "$TARGET_DIR" ]]; then
+  copy_to "$TARGET_DIR"
+else
+  copy_to "$TARGET_HOME/.claude/skills/$SKILL_NAME"
+  copy_to "$TARGET_HOME/.cursor/skills/$SKILL_NAME"
+  copy_to "$TARGET_HOME/.gemini/antigravity-ide/skills/$SKILL_NAME"
+fi
 
 echo ""
 echo "🎉 Skill installation complete!"

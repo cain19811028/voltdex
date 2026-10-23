@@ -23,7 +23,7 @@ function sandbox(t, fetchImpl = fakeSpriteFetch) {
   t.mock.method(globalThis, "fetch", fetchImpl);
   t.after(() => {
     process.chdir(prevCwd);
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
   return { root, outside };
 }
@@ -79,9 +79,9 @@ test("Sprite download boundary (downloadSprite)", async (t) => {
     const victim = path.join(outside, "victim.png");
     fs.writeFileSync(victim, "victim");
     try {
-      fs.symlinkSync(victim, path.join(root, "target.png"));
+      fs.symlinkSync(victim, path.join(root, "target.png"), "file");
     } catch (err) {
-      if (err.code === "EPERM") {
+      if (err.code === "EPERM" || err.code === "EACCES") {
         t.skip("Creating file symlinks requires developer mode or admin privileges on Windows");
         return;
       }
@@ -151,6 +151,21 @@ test("Sprite download transport limits (downloadSprite)", async (t) => {
 
     await assert.rejects(downloadSprite(SPRITE_URL, "huge.png", { root }), /too large/);
     assert.equal(pulled, false);
+    assert.deepEqual(fs.readdirSync(root), []);
+  });
+
+  await t.test("rejects responses with invalid image binary signature (magic bytes)", async () => {
+    const { root } = sandbox(t, async () =>
+      new Response(Buffer.from("<script>alert(1)</script>"), {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      })
+    );
+
+    await assert.rejects(
+      downloadSprite(SPRITE_URL, "fake.png", { root }),
+      /Invalid image binary/
+    );
     assert.deepEqual(fs.readdirSync(root), []);
   });
 });

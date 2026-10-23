@@ -104,8 +104,11 @@ cp -r voltdex ~/.claude/skills/voltdex
 # 2. Install globally for Cursor:
 cp -r voltdex ~/.cursor/skills/voltdex
 
-# 3. Or place inside your project / agent workspace skills directory:
-cp -r voltdex ./skills/voltdex
+# 3. Install for Google Antigravity / Gemini CLI:
+cp -r voltdex ~/.gemini/antigravity-ide/skills/voltdex
+
+# 4. Or place inside your project / agent workspace skills directory:
+cp -r voltdex ./.agents/skills/voltdex
 ```
 AI Agents will automatically discover and utilize the tool via [`SKILL.md`](SKILL.md).
 

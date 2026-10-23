@@ -198,8 +198,8 @@ function resolveOutputPath(outPath, root, overwrite) {
     );
   }
 
-  const fullPath = path.resolve(rootDir, outPath);
-  if (!isInside(rootDir, fullPath)) {
+  const fullPath = path.resolve(realRoot, outPath);
+  if (!isInside(realRoot, fullPath)) {
     throw new Error(`Security error: Output path must be within the output directory (${rootDir})`);
   }
 
@@ -251,6 +251,58 @@ async function readCappedBody(res, limit) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
+}
+
+function isValidImageBuffer(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 8) return false;
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return true;
+  }
+
+  // GIF: GIF87a (47 49 46 38 37 61) or GIF89a (47 49 46 38 39 61)
+  if (
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38 &&
+    (buffer[4] === 0x37 || buffer[4] === 0x39) &&
+    buffer[5] === 0x61
+  ) {
+    return true;
+  }
+
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return true;
+  }
+
+  // WEBP: "RIFF" (0-3) ... "WEBP" (8-11)
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -308,6 +360,9 @@ export async function downloadSprite(url, outPath, options = {}) {
   }
 
   const buffer = await readCappedBody(res, MAX_SPRITE_BYTES);
+  if (!isValidImageBuffer(buffer)) {
+    throw new Error("Invalid image binary: response content does not match expected image signatures (PNG, GIF, JPEG, WEBP)");
+  }
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   // "wx" keeps the no-overwrite promise even if the file appeared while downloading.
   fs.writeFileSync(fullPath, buffer, { flag: overwrite ? "w" : "wx" });

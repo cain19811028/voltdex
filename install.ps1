@@ -1,18 +1,24 @@
-# SPDX-License-Identifier: MIT
+﻿# SPDX-License-Identifier: MIT
 # Copyright (c) 2026 cain19811028
 
 # voltdex One-Click Installer for Windows
-# Copies skill into Claude Code and Cursor user directories and displays MCP configuration.
+# Copies skill into Claude Code, Cursor, and Antigravity user directories and displays MCP configuration.
+
+param(
+    [string]$TargetHome = $HOME,
+    [string]$TargetDir = ""
+)
 
 $ErrorActionPreference = "Stop"
 $SkillName = "voltdex"
 $RepoRoot = $PSScriptRoot
 
-Write-Host "⚡ Installing $SkillName..." -ForegroundColor Cyan
+Write-Host "Installing $SkillName..." -ForegroundColor Cyan
 
 # Target directories
-$ClaudeSkills = Join-Path $HOME ".claude\skills\$SkillName"
-$CursorSkills = Join-Path $HOME ".cursor\skills\$SkillName"
+$ClaudeSkills = Join-Path $TargetHome ".claude\skills\$SkillName"
+$CursorSkills = Join-Path $TargetHome ".cursor\skills\$SkillName"
+$GeminiSkills = Join-Path $TargetHome ".gemini\antigravity-ide\skills\$SkillName"
 
 function Copy-SkillDir ($Destination) {
     if (-not $Destination -or -not $Destination.EndsWith($SkillName)) {
@@ -26,7 +32,7 @@ function Copy-SkillDir ($Destination) {
             return
         }
         if ($Existing.FullName.TrimEnd('\') -eq (Get-Item -LiteralPath $RepoRoot).FullName.TrimEnd('\')) {
-            Write-Host "✔ Already installed in place: $Destination" -ForegroundColor Green
+            Write-Host "Already installed in place: $Destination" -ForegroundColor Green
             return
         }
         # Only clear a directory that positively holds an earlier install of this skill.
@@ -40,27 +46,48 @@ function Copy-SkillDir ($Destination) {
         Remove-Item -LiteralPath $Destination -Recurse -Force
     }
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-    Get-ChildItem -Path $RepoRoot -Exclude ".git" | Copy-Item -Destination $Destination -Recurse -Force
-    Write-Host "✔ Installed skill to: $Destination" -ForegroundColor Green
-}
-
-Copy-SkillDir $ClaudeSkills
-Copy-SkillDir $CursorSkills
-
-Write-Host "`n🎉 Skill installation complete!" -ForegroundColor Cyan
-Write-Host "Try querying with:" -ForegroundColor Yellow
-Write-Host "  node `"$ClaudeSkills\index.mjs`" 噴火龍 --brief"
-
-Write-Host "`n🔌 MCP Server Configuration snippet:" -ForegroundColor Cyan
-$McpPath = "$RepoRoot\index.mjs".Replace('\', '/')
-$McpConfig = @"
-{
-  "mcpServers": {
-    "voltdex": {
-      "command": "node",
-      "args": ["$McpPath", "--mcp"]
+    $Payload = @(
+        "index.mjs",
+        "package.json",
+        "SKILL.md",
+        "LICENSE",
+        "NOTICE.md",
+        "THIRD_PARTY_NOTICES.md",
+        "README.zh-TW.md",
+        "src",
+        "data"
+    )
+    foreach ($Item in $Payload) {
+        $SourcePath = Join-Path $RepoRoot $Item
+        if (Test-Path -LiteralPath $SourcePath) {
+            Copy-Item -LiteralPath $SourcePath -Destination $Destination -Recurse -Force
+        }
     }
-  }
+    Write-Host "Installed skill to: $Destination" -ForegroundColor Green
 }
-"@
-Write-Host $McpConfig -ForegroundColor Gray
+
+if ($TargetDir) {
+    Copy-SkillDir $TargetDir
+    $ExampleSkillDir = $TargetDir
+} else {
+    Copy-SkillDir $ClaudeSkills
+    Copy-SkillDir $CursorSkills
+    Copy-SkillDir $GeminiSkills
+    $ExampleSkillDir = $ClaudeSkills
+}
+
+Write-Host "`nSkill installation complete!" -ForegroundColor Cyan
+Write-Host "Try querying with:" -ForegroundColor Yellow
+Write-Host "  node `"$ExampleSkillDir\index.mjs`" Charizard --brief"
+
+Write-Host "`nMCP Server Configuration snippet:" -ForegroundColor Cyan
+$McpPath = "$RepoRoot\index.mjs".Replace('\', '/')
+$Config = [ordered]@{
+    mcpServers = [ordered]@{
+        voltdex = [ordered]@{
+            command = "node"
+            args = @($McpPath, "--mcp")
+        }
+    }
+}
+Write-Host ($Config | ConvertTo-Json -Depth 5) -ForegroundColor Gray

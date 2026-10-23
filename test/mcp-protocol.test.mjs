@@ -60,6 +60,13 @@ test("MCP JSON-RPC error handling", async (t) => {
     assert.deepEqual(res.map((r) => r.id).sort(), [1, 2]);
   });
 
+  await t.test("rejects batches exceeding maximum batch limit", () => {
+    const hugeBatch = Array.from({ length: 51 }, (_, i) => ({ jsonrpc: "2.0", id: i + 1, method: "ping" }));
+    const [res] = mcpExchange([hugeBatch]);
+    assert.equal(res.error.code, -32600);
+    assert.match(res.error.message, /Batch size exceeds limit/);
+  });
+
   await t.test("reports an unknown tool as invalid params", () => {
     const [res] = mcpExchange([{ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "nope", arguments: {} } }]);
     assert.equal(res.error.code, -32602);
